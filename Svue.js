@@ -17,20 +17,33 @@ function defineReactive(obj, key, val) {
     observer(val)
     Object.defineProperty(obj, key, {
         get() {
-            console.log('----get-----')
             return val
         },
         set(newValue) {
-            console.log('-----set-----')
             val = newValue
         }
     })
+}
+// 将$data中的key代理到KVue实例上
+function proxy(vm) {
+  Object.keys(vm.$data).forEach(key => {
+    Object.defineProperty(vm, key, {
+      get() {
+        return vm.$data[key]
+      },
+      set(v) {
+        vm.$data[key] = v
+      }
+    })
+  })
 }
 class Svue {
     constructor(options) {
         this.$options = options
         this.$data = options.data
+        proxy(this)
         observer(this.$data)
+        new Compiler('#app', this)
     }
 }
 
@@ -46,27 +59,50 @@ class Compiler {
     // 解析模板
     compile(el) {
         el.childNodes.forEach(node => {
-            // Element 编译元素
+            // Element 编译元素'
             if (node.nodeType === 1) {
                 this.compileElement(node)
+            }else if(this.isInter(node)){
+                // 解析文本
+                this.compileText(node)
             }
         })
     }
 
     compileElement(node) {
+        // 遍历节点的属性
         let nodeAttrs = node.attributes
         Array.from(nodeAttrs).forEach((attr) => {
             let attrName = attr.name
             let exp = attr.value
+            // 判断这个属性的类型
             if (this.isDirective(attrName)) {
+                // 如果是指令 v-xxx 截取指令名称
                 let dir = attrName.substring(2)
+                // 如果指令存在 执行它
                 this[dir] && this[dir](node, exp)
             }
         })
     }
+    // 文本指令
+    text(node, exp){
+        node.textContent = this.$vm[exp]
+    }
+    // 是否为插值表达式{{}}
+    isInter(node) {
+        return node.nodeType === 3 && /\{\{(.*)\}\}/.test(node.textContent)
+      }
+
+    compileText(node){
+        node.textContent = this.$vm[RegExp.$1]
+    }
 
     isDirective(attr) {
-        return attr.indexOf('k-') === 0
+        return attr.indexOf('v-') === 0
     }
+
+  // 所有动态绑定都需要创建更新函数以及对应watcher实例
+  update(node, exp, dir) {}
 }
+
 

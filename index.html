@@ -9,14 +9,18 @@
 </head>
 
 <body>
-    <div id='app'></div>
+    <div id='app'>
+        {{message}}
+        <p v-text="text1"></p>
+    </div>
 </body>
 <script>
 
-    new Svue({
+    const app = new Svue({
         el: '#app',
         data: {
-            message: 11111
+            message: '我是message',
+            text1: '我是text1'
         }
     })
 </script>
