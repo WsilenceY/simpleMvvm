@@ -10,8 +10,7 @@
 
 <body>
     <div id='app'>
-        {{message}}
-        <p v-text="text1"></p>
+        {{counter}}
     </div>
 </body>
 <script>
@@ -20,9 +19,14 @@
         el: '#app',
         data: {
             message: '我是message',
-            text1: '我是text1'
+            text1: '我是text1',
+            counter: 1
         }
     })
+
+    // setInterval(() => {
+    //   app.counter++
+    // }, 1000);
 </script>
 
 </html>

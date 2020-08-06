@@ -21,6 +21,11 @@ function defineReactive(obj, key, val) {
         },
         set(newValue) {
             val = newValue
+
+            // 通知更新
+            watchers.forEach((w)=>{
+                w.update()
+            })
         }
     })
 }
@@ -94,15 +99,52 @@ class Compiler {
       }
 
     compileText(node){
-        node.textContent = this.$vm[RegExp.$1]
+        this.update(node, RegExp.$1, 'text')
     }
 
-    isDirective(attr) {
-        return attr.indexOf('v-') === 0
+  isDirective(attr) {
+     return attr.indexOf('v-') === 0
+  }
+
+  /* 
+    所有动态绑定都需要创建更新函数以及对应watcher实例
+    node： 节点
+    exp： 节点对应动态表达式的值
+    dir： 对应的指令
+  */
+  update(node, exp, dir) {
+    // 初始化
+    const fn = this[dir+ 'Updater']
+    fn && fn(node, this.$vm[exp])
+    //更新
+    new Watcher(this.$vm, exp, 
+        function(val){
+            fn && fn(node, val)
+        })
+  }
+  // Updater
+  textUpdater(node, value){
+    console.log('------textUpdater-----', value)
+    node.textContent = value // this.$vm[RegExp.$1]
+  }
+}
+
+// watcher 小秘书 每一个绑定对应一个
+const watchers = []
+class Watcher{
+    constructor(vm, key, updateFn){
+        this.vm = vm;
+        this.key = key;
+        this.updateFn = updateFn;
+        watchers.push(this)
     }
 
-  // 所有动态绑定都需要创建更新函数以及对应watcher实例
-  update(node, exp, dir) {}
+    // update 方法
+    update(){
+        console.log('---ddd-dd---', this.key)
+        // 传入最新值给更新函数
+        this.updateFn.call(this.vm,this.vm[this.key])
+    }
 }
 
 
