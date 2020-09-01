@@ -30,7 +30,6 @@ function defineReactive(obj, key, val) {
             val = newValue
             console.log('----set-----',newValue,dep)
             // 通知更新
-            debugger
             dep.notify()
             // watchers.forEach((w)=>{
             //     w.update()
@@ -55,8 +54,9 @@ class Svue {
     constructor(options) {
         this.$options = options
         this.$data = options.data
-        proxy(this)
         observer(this.$data)
+        proxy(this)
+        
         new Compiler('#app', this)
     }
 }
@@ -67,19 +67,26 @@ class Compiler {
     constructor(el, vm) {
         this.$vm = vm
         this.$el = document.querySelector(el)
-        this.compile(this.$el)
+        if(this.$el){
+            this.compile(this.$el)
+        }
     }
 
     // 解析模板
     compile(el) {
+         // 递归遍历el
         el.childNodes.forEach(node => {
-            // Element 编译元素'
-            if (node.nodeType === 1) {
-                this.compileElement(node)
-            }else if(this.isInter(node)){
-                // 解析文本
-                console.log('-----isInter-----');
-                this.compileText(node)
+            // 判断其类型
+            if (this.isElement(node)) {
+            // console.log('编译元素', node.nodeName);
+            this.compileElement(node)
+            } else if (this.isInter(node)) {
+            // console.log('编译插值表达式', node.textContent);
+            this.compileText(node)
+            }
+    
+            if (node.childNodes) {
+            this.compile(node)
             }
         })
     }
@@ -107,6 +114,11 @@ class Compiler {
     isInter(node) {
         return node.nodeType === 3 && /\{\{(.*)\}\}/.test(node.textContent)
       }
+
+      // 元素
+    isElement(node) {
+        return node.nodeType === 1
+    }
 
     compileText(node){
         this.update(node, RegExp.$1, 'text')
@@ -143,9 +155,26 @@ class Compiler {
 
 // watcher 小秘书 每一个绑定 对应一个
 const watchers = []
+// class Watcher {
+//     constructor(vm, key, updateFn) {
+//       this.vm = vm
+//       this.key = key
+//       this.updateFn = updateFn
+  
+//       // 读一次数据，触发defineReactive里面的get()
+//       Dep.target = this
+//       this.vm[this.key]
+//       Dep.target = null
+//     }
+  
+//     // 管家调用
+//     update() {
+//       // 传入当前的最新值给更新函数f
+//       this.updateFn.call(this.vm, this.vm[this.key])
+//     }
+//   }
 class Watcher{
     constructor(vm, key, updateFn){
-        console.log('----updateFn----', updateFn)
         this.vm = vm;
         this.key = key;
         this.updateFn = updateFn;
@@ -164,15 +193,28 @@ class Watcher{
 
 // Dep: 保存所有watcher实例，当某个key发生变化，通知他们执行更新
 class Dep {
-    constructor(){
+    constructor() {
       this.deps = []
     }
-    addDep(watcher){
-        this.deps.push(watcher)
+  
+    addDep(watcher) {
+      this.deps.push(watcher)
     }
+  
+    notify() {
+      this.deps.forEach(dep => dep.update())
+    }
+  }
+// class Dep {
+//     constructor(){
+//       this.deps = []
+//     }
+//     addDep(watcher){
+//         this.deps.push(watcher)
+//     }
 
-    notify(){
-     this.deps.forEach(dep => dep.update)
-    }
-}
+//     notify(){
+//      this.deps.forEach(dep => dep.update)
+//     }
+// }
 
